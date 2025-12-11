@@ -8,8 +8,8 @@ print("Подключение к Kerbal Space Program...")
 conn = krpc.connect(name='Laythe Flight Monitor')
 vessel = conn.space_center.active_vessel
 
-orbit_ref = vessel.orbit.body.reference_frame
-surface_ref = vessel.surface_reference_frame
+orbit_ref = vessel.orbit.body.orbital_reference_frame
+surface_ref = vessel.orbit.body.non_rotating_reference_frame
 
 print(f"Подключено к кораблю: {vessel.name}")
 print(f"Текущее небесное тело: {vessel.orbit.body.name}")
@@ -33,8 +33,7 @@ try:
     while True:
         current_time = time.time() - start_time
         
-        orbital_velocity = vessel.flight(orbit_ref).speed
-        surface_velocity = vessel.flight(surface_ref).speed
+        orbital_velocity = vessel.orbit.speed
         
         altitude = vessel.flight().mean_altitude
         body_name = vessel.orbit.body.name
@@ -44,7 +43,6 @@ try:
         data_point = {
             'time': current_time,
             'orbital_vel': orbital_velocity,
-            'surface_vel': surface_velocity,
             'altitude': altitude,
             'body': body_name,
             'apoapsis': apoapsis if apoapsis > 0 else 0,
@@ -57,7 +55,6 @@ try:
             writer.writerow([
                 round(current_time, 2),
                 round(orbital_velocity, 2),
-                round(surface_velocity, 2),
                 round(altitude, 2),
                 body_name,
                 round(apoapsis, 2) if apoapsis > 0 else 0,
@@ -67,7 +64,6 @@ try:
         print(f"\rВремя: {current_time:.1f}с | "
               f"Тело: {body_name} | "
               f"Орб.скорость: {orbital_velocity:.1f} м/с | "
-              f"Пов.скорость: {surface_velocity:.1f} м/с | "
               f"Высота: {altitude/1000:.2f} км", end='')
         
         if body_name in ['Jool', 'Laythe'] and len(data_points) > 1:
@@ -94,7 +90,6 @@ surface_vels = [d['surface_vel'] for d in data_points]
 
 plt.figure(figsize=(12, 6))
 plt.plot(times, orbital_vels, label='Орбитальная скорость', color='blue', linewidth=2)
-plt.plot(times, surface_vels, label='Поверхностная скорость', color='red', linewidth=2)
 plt.xlabel('Время (секунды)', fontsize=12)
 plt.ylabel('Скорость (м/с)', fontsize=12)
 plt.title(f'Изменение скорости во время полёта на Laythe - {vessel.name}', 
@@ -104,11 +99,9 @@ plt.grid(True, alpha=0.3)
 
 total_time = times[-1]
 max_orbital_vel = max(orbital_vels)
-final_body = data_points[-1]['body']
 
 stats_text = f'Время полёта: {total_time/60:.1f} мин\n'
 stats_text += f'Макс. скорость: {max_orbital_vel:.0f} м/с\n'
-stats_text += f'Финальное тело: {final_body}'
 
 plt.text(0.02, 0.98, stats_text, transform=plt.gca().transAxes,
          fontsize=10, verticalalignment='top',
@@ -126,5 +119,4 @@ print("\n=== ИТОГОВАЯ СТАТИСТИКА ===")
 print(f"Продолжительность полёта: {total_time:.1f} сек ({total_time/60:.1f} мин)")
 print(f"Максимальная орбитальная скорость: {max_orbital_vel:.1f} м/с")
 print(f"Средняя орбитальная скорость: {sum(orbital_vels)/len(orbital_vels):.1f} м/с")
-print(f"Финальное небесное тело: {final_body}")
 print(f"\nВсе данные сохранены!")
